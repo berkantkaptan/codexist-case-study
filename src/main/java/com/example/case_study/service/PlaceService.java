@@ -1,0 +1,83 @@
+package com.example.case_study.service;
+
+import com.example.case_study.dto.request.PlaceRequest;
+import com.example.case_study.dto.response.PlaceResponse;
+import com.example.case_study.mapper.PlaceMapper;
+import com.example.case_study.model.PlaceSearch;
+import com.example.case_study.repository.PlaceRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class PlaceService {
+
+    private final PlaceRepository placeRepository;
+    private final PlaceMapper placeMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private String apiKey;
+
+    public List<PlaceResponse> getNearbyPlaces(PlaceRequest placeRequest) {
+        String key = placeRequest.getLatitude() + "," + placeRequest.getLongitude() + "," + placeRequest.getRadius();
+
+        Optional<PlaceSearch> cached = placeRepository.findByRequestKey(key);
+        if (cached.isPresent()) {
+            return cached.get().getPlaceResponseList();
+        }
+
+        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json" +
+                "?location=" + placeRequest.getLatitude() + "," + placeRequest.getLongitude() +
+                "&radius=" + placeRequest.getRadius() +
+                "&key=" + apiKey;
+
+        RestTemplate restTemplate = new RestTemplate();
+        String response = restTemplate.getForObject(url, String.class);
+
+        List<PlaceResponse> placeResponse = parsePlacesFromJson(response);
+
+        placeRepository.save(placeMapper.ToPlaceSearch(key,placeResponse, response));
+
+        return placeResponse;
+    }
+
+    private List<PlaceResponse> parsePlacesFromJson(String json) {
+        List<PlaceResponse> result = new ArrayList<>();
+
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            JsonNode results = root.path("results");
+
+            for (JsonNode node : results) {
+                String name = node.path("name").asText();
+                String address = node.path("vicinity").asText();
+                String placeId = node.path("place_id").asText();
+                double lat = node.path("geometry").path("location").path("lat").asDouble();
+                double lng = node.path("geometry").path("location").path("lng").asDouble();
+
+                PlaceResponse place = new PlaceResponse();
+                place.setName(name);
+                place.setAddress(address);
+                place.setPlaceId(placeId);
+                place.setLatitude(lat);
+                place.setLongitude(lng);
+
+                result.add(place);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
+
+
+    }
+}
