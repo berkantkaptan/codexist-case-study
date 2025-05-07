@@ -1,6 +1,5 @@
 package com.example.case_study.service;
 
-import com.example.case_study.dto.request.PlaceRequest;
 import com.example.case_study.dto.response.PlaceResponse;
 import com.example.case_study.mapper.PlaceMapper;
 import com.example.case_study.model.PlaceSearch;
@@ -27,8 +26,8 @@ public class PlaceService {
     @Value("${apiKey}")
     private String apiKey;
 
-    public List<PlaceResponse> getNearbyPlaces(PlaceRequest placeRequest) {
-        String requestKey = generateRequestKey(placeRequest.getLatitude(), placeRequest.getLongitude(), placeRequest.getRadius());
+    public List<PlaceResponse> getNearbyPlaces(double latitude, double longitude, int radius) {
+        String requestKey = generateRequestKey(latitude, longitude, radius);
 
         Optional<PlaceSearch> savedRequest = placeRepository.findByRequestKey(requestKey);
 
@@ -37,8 +36,8 @@ public class PlaceService {
         }
 
         String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json" +
-                "?location=" + placeRequest.getLatitude() + "," + placeRequest.getLongitude() +
-                "&radius=" + placeRequest.getRadius() +
+                "?location=" + latitude + "," + longitude +
+                "&radius=" + radius +
                 "&key=" + apiKey;
 
         RestTemplate restTemplate = new RestTemplate();
