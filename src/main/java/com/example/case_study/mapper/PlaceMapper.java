@@ -9,7 +9,7 @@ import java.util.List;
 @Component
 public class PlaceMapper {
 
-    public PlaceSearch ToPlaceSearch(String key, List<PlaceResponse> responseList, String googleResponse){
+    public PlaceSearch toPlaceSearch(String key, List<PlaceResponse> responseList, String googleResponse){
         PlaceSearch placeSearch = new PlaceSearch();
         placeSearch.setPlaceResponseList(responseList);
         placeSearch.setRequestKey(key);

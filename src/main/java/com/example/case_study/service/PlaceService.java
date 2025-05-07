@@ -8,6 +8,7 @@ import com.example.case_study.repository.PlaceRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -23,14 +24,16 @@ public class PlaceService {
     private final PlaceMapper placeMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Value("${apiKey}")
     private String apiKey;
 
     public List<PlaceResponse> getNearbyPlaces(PlaceRequest placeRequest) {
-        String key = placeRequest.getLatitude() + "," + placeRequest.getLongitude() + "," + placeRequest.getRadius();
+        String requestKey = generateRequestKey(placeRequest.getLatitude(), placeRequest.getLongitude(), placeRequest.getRadius());
 
-        Optional<PlaceSearch> cached = placeRepository.findByRequestKey(key);
-        if (cached.isPresent()) {
-            return cached.get().getPlaceResponseList();
+        Optional<PlaceSearch> savedRequest = placeRepository.findByRequestKey(requestKey);
+
+        if (savedRequest.isPresent()) {
+            return savedRequest.get().getPlaceResponseList();
         }
 
         String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json" +
@@ -43,9 +46,13 @@ public class PlaceService {
 
         List<PlaceResponse> placeResponse = parsePlacesFromJson(response);
 
-        placeRepository.save(placeMapper.ToPlaceSearch(key,placeResponse, response));
+        placeRepository.save(placeMapper.toPlaceSearch(requestKey,placeResponse, response));
 
         return placeResponse;
+    }
+
+    private String generateRequestKey(double latitude, double longitude, int radius) {
+        return latitude + "," + longitude + "," + radius;
     }
 
     private List<PlaceResponse> parsePlacesFromJson(String json) {

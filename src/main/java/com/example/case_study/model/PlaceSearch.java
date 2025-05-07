@@ -12,7 +12,7 @@ import java.util.List;
 public class PlaceSearch {
 
     @Id
-    private Long id;
+    private String id;
 
     private String requestKey;
 
